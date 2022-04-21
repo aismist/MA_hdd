@@ -1,0 +1,121 @@
+---
+title: "Gas Heating Efficiencies of Massachusetts Communities"
+author: "mike"
+date: "4/3/2022"
+output: html_document
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(skimr)
+library(reshape2)
+```
+
+
+# Introduction
+
+The Commonwealth of Massachusetts has set ambitious targets for decarbonization which will include *electrifying* thermal energy sources used for common tasks such as building heating, water heating, and cooking. This analysis provides a summary for each community that illustrates key performance metrics that will inform each community's pathway to decarbonization by performing a simple heating degree day regression against gas use data published via the [MassSave Data Portal](https://www.masssavedata.com/Public/GeographicSavings?view=C).
+
+#### Outputs Include:
+
+- **Community Response** to changes in Heating Degree Days (HDD) in terms of therms per household
+
+- **Comparative Ranking** of communities indicating the aggregate thermal efficiencicy of residences
+
+- **Base Level** natural gas consumption indicating the percentage of consumption from weather independent uses
+
+- **AND MORE**
+
+## Applications
+
+1. Reducing CO~2~
+
+1. Stabilizing the Climate!
+
+## Week 3 Learnings!
+
+1. Took a bit more time to get started as i decided i should reinstall base R from when i originally attempted to pick this up ~v3.6. This seems to have cleared up some consitent error messages. 
+
+1. This was a bear! I tried many different options to get the number values with commas to import as numbers instead of char. These included trying to use gsub to replace ",", "" and other overly-complicated things.  Ultimately i recalled the col_types lesson from week2 (seems like ages ago) and got that to work well.  Also found the problems() function in the console to be helpful in troubleshooting.
+
+skim was handy for looking at the results. The histograms seem off, but then i realized that i have an extreme outlyer on the large end of the spectrum that is the sum of all communities.
+
+## What's Next for this project??
+
+Ultimately i hope to join in two additional datasets for community population and a matching value for monthly heating degree days for each observation.
+
+I believe i will need to change the shape of the set to get the month columns condensed into a row value.
+
+I want to then run simple regression on therms/population as dependent on heating degree days. I would like to batch this process so that the regression is performed on each location separately, likely dropping the commercial sector values to start.  I realize regression isn't part of the curriculum here, but i think i can make it work.
+
+
+
+```{r}
+
+ma_hdd <- read_csv("data/therms_per_month.csv",
+                   na = c("No gas", "Municipal", "Protected")
+                   ) %>% 
+  clean_names()
+
+ma_hdd
+
+```
+```{r}
+skim(ma_hdd)
+```
+
+
+```{r}
+ma_hdd_stacked <- melt(ma_hdd, id.var = c('location', 'sector', 'year'), variable.name = 'month')
+  
+ma_hdd_fin <- ma_hdd_stacked[!(ma_hdd_stacked$location=="All Towns"),]
+
+ma_hdd_fin2 <- ma_hdd_fin[!(ma_hdd_stacked$month=="annual"),]
+
+
+ma_hdd_fin
+
+```
+
+```{r}
+skim(ma_hdd_fin2)
+```
+
+
+
+```{r}
+
+ma_hdd_fin2 %>% 
+  ggplot(aes(x = month,
+             y = value,
+             color = location))+
+  geom_col(show.legend = FALSE)+
+  coord_flip()+
+    labs(title = "Therms per Month of Gas Use",
+      subtitle = "in MA Cities",
+       y = "Therms",
+       x = "") +
+  theme_minimal()+
+  facet_wrap(~year)
+
+```
+
+
+
+```{r}
+ggsave(filename = "plots/myfirstRvis3.png",
+       height = 8,
+       width = 11,
+       dpi = 300,
+       units = "in")
+```
+
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
